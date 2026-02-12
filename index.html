@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sázkový deník</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+  --bg:#08060f;
+  --card:#0d0a1c;
+  --accent:#6d5dfc;
+  --text:#f4f3ff;
+  --muted:#9aa4bf;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,Arial,sans-serif;
+  background:radial-gradient(1200px 800px at 10% -10%, #1a1440, transparent),
+             radial-gradient(1000px 700px at 90% 10%, #0f2a4a, transparent),
+             var(--bg);
+  color:var(--text);
+  padding-bottom:90px;
+}
+main{padding:14px}
+section{
+  display:none;
+  background:var(--card);
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);
+}
+section.active{display:block}
+.dashboard{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-bottom:14px;
+}
+.dash-card{
+  border:1px solid rgba(120,90,255,.35);
+  border-radius:14px;
+  padding:12px;
+}
+.dash-card span{
+  font-size:11px;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+.dash-card strong{font-size:18px}
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin-bottom:8px;
+  border-radius:12px;
+  border:1px solid rgba(120,90,255,.35);
+  background:#120b2b;
+  color:var(--text);
+}
+button{
+  background:linear-gradient(135deg,#6d5dfc,#b07cff);
+  color:#0b0614;
+  font-weight:700;
+  border:none;
+}
+
+.bottom-nav{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  height:82px;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  background:linear-gradient(180deg,#120b2b,#0b0614);
+  border-top:1px solid rgba(120,90,255,.35);
+}
+.bottom-nav button{
+  background:none;
+  border:none;
+  color:#9aa4bf;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  font-size:11px;
+}
+.bottom-nav button.active{color:#b07cff}
+.stat-line{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 12px;
+  margin-bottom:6px;
+  border-radius:12px;
+  background:#120b2b;
+  border:1px solid rgba(120,90,255,.35);
+  font-size:14px;
+}
+
+.stat-line strong{
+  font-weight:700;
+}
+
+.stat-line.win{
+  color:#6dff9c;
+}
+
+.stat-line.lose{
+  color:#ff7a7a;
+}
+/* ===== SETTINGS REDESIGN ===== */
+.settings-card{
+  background:linear-gradient(180deg,rgba(30,20,70,.85),rgba(15,10,40,.9));
+  border:1px solid rgba(140,120,255,.35);
+  border-radius:26px;
+  padding:22px;
+  box-shadow:
+    0 25px 60px rgba(0,0,0,.55),
+    inset 0 0 0 1px rgba(255,255,255,.03);
+}
+
+.settings-field{
+  margin-bottom:18px;
+}
+
+.settings-field label{
+  display:block;
+  font-size:12px;
+  color:#b7b9ff;
+  margin-bottom:6px;
+  letter-spacing:.4px;
+}
+
+.settings-field input{
+  background:rgba(15,10,35,.85);
+  border-radius:18px;
+  padding:16px;
+  font-size:15px;
+}
+
+.settings-actions{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:10px;
+}
+
+.btn-primary{
+  background:linear-gradient(135deg,#7b6cff,#b18cff);
+  color:#0b0614;
+  font-weight:800;
+  border-radius:20px;
+  padding:16px;
+}
+
+.btn-secondary{
+  background:linear-gradient(135deg,#5a5df0,#7b8cff);
+  color:#0b0614;
+  font-weight:700;
+  border-radius:20px;
+  padding:15px;
+}
+
+.btn-danger{
+  background:linear-gradient(135deg,#ff5c5c,#ff8a8a);
+  color:#2b0000;
+  font-weight:800;
+  border-radius:20px;
+  padding:15px;
+}
+
+/* ===== RESET CONFIRM MODAL ===== */
+
+.reset-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(5,5,15,.75);
+  backdrop-filter:blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+.reset-modal.active{
+  display:flex;
+}
+
+.reset-box{
+  background:#15102a;
+  border:1px solid #ff5a5a;
+  border-radius:24px;
+  padding:24px;
+  width:90%;
+  max-width:340px;
+  text-align:center;
+  box-shadow:0 30px 70px rgba(0,0,0,.7);
+}
+
+.reset-box h3{
+  margin:0 0 8px;
+  color:#ff6b6b;
+}
+
+.reset-box p{
+  font-size:14px;
+  color:#bfbfff;
+  margin-bottom:18px;
+}
+
+.reset-actions{
+  display:flex;
+  gap:12px;
+}
+/* ===== RESET CONFIRM MODAL ===== */
+.reset-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(5,5,15,.75);
+  backdrop-filter:blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+.reset-modal.active{display:flex;}
+.reset-box{
+  background:#15102a;
+  border:1px solid #ff5a5a;
+  border-radius:24px;
+  padding:24px;
+  width:90%;
+  max-width:340px;
+  text-align:center;
+}
+.reset-actions{
+  display:flex;
+  gap:12px;
+}
+.stat-line.good{ color:#6dff9c; }
+.stat-line.mid{ color:#ffd36d; }
+.stat-line.bad{ color:#ff7a7a; }
+.stat-line{
+  transition: background .25s, transform .15s;
+}
+
+.stat-line:hover{
+  transform: scale(1.01);
+}
+
+/* PROFIT BASED */
+.stat-line[data-roi^="-"]{
+  background:linear-gradient(135deg,#2a0f14,#120b2b);
+  border-color:#ff5c5c;
+  color:#ff8a8a;
+}
+
+.stat-line[data-roi^="0"],
+.stat-line[data-roi^="1"],
+.stat-line[data-roi^="2"]{
+  background:linear-gradient(135deg,#2a2512,#120b2b);
+  border-color:#ffd36d;
+  color:#ffd36d;
+}
+
+.stat-line[data-roi^="3"],
+.stat-line[data-roi^="4"],
+.stat-line[data-roi^="5"],
+.stat-line[data-roi^="6"],
+.stat-line[data-roi^="7"],
+.stat-line[data-roi^="8"],
+.stat-line[data-roi^="9"]{
+  background:linear-gradient(135deg,#0f2a1c,#120b2b);
+  border-color:#6dff9c;
+  color:#6dff9c;
+}
+.bottom-nav button{
+  position:relative;
+  transition:color .25s, transform .15s;
+}
+
+.bottom-nav button.active{
+  color:#b07cff;
+  font-weight:700;
+  transform:translateY(-2px);
+}
+
+/* underline indicator */
+.bottom-nav button.active::after{
+  content:"";
+  position:absolute;
+  bottom:6px;
+  width:28px;
+  height:3px;
+  border-radius:6px;
+  background:linear-gradient(90deg,#6d5dfc,#b18cff);
+  box-shadow:0 0 12px rgba(109,93,252,.8);
+}
+
+/* hover feedback */
+.bottom-nav button:hover{
+  color:#c9c4ff;
+}
+.bottom-nav button{
+  color:#ffffff;
+}
+
+.bottom-nav button svg{
+  width:24px;
+  height:24px;
+  stroke:#ffffff;
+  fill:none;
+  stroke-width:1.8;
+  transition:transform .25s, filter .25s;
+}
+
+.bottom-nav button.active{
+  color:#ffffff;
+  transform:translateY(-2px);
+}
+
+.bottom-nav button.active svg{
+  transform:scale(1.15);
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.7));
+}
+/* ===== MODERN HISTORY CARDS ===== */
+
+#history table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+#history tbody{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.history-card{
+  background:linear-gradient(135deg,#130d30,#0c0820);
+  border:1px solid rgba(120,90,255,.35);
+  border-radius:18px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  box-shadow:0 15px 35px rgba(0,0,0,.45);
+}
+
+.history-header{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#9aa4bf;
+}
+
+.history-match{
+  font-size:15px;
+  font-weight:600;
+}
+
+.history-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:14px;
+}
+
+.history-profit.win{
+  color:#6dff9c;
+  font-weight:700;
+}
+
+.history-profit.lose{
+  color:#ff7a7a;
+  font-weight:700;
+}
+
+.history-profit.pending{
+  color:#ffd36d;
+  font-weight:700;
+}
+
+.history-actions{
+  display:flex;
+  gap:8px;
+  margin-top:6px;
+}
+
+.history-actions button{
+  padding:6px 10px;
+  font-size:12px;
+  border-radius:8px;
+}
+/* ===== HALF SWIPE SYSTEM ===== */
+
+.history-wrapper{
+  position:relative;
+  overflow:hidden;
+  border-radius:18px;
+}
+
+/* LEFT = EDIT (green) */
+.swipe-edit-bg{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:50%;
+  background:linear-gradient(135deg,#00c853,#00ff88);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:18px;
+  color:white;
+}
+
+/* RIGHT = DELETE (red) */
+.swipe-delete-bg{
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:50%;
+  background:linear-gradient(135deg,#8b0000,#ff2e2e);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:18px;
+  color:white;
+}
+
+.history-card{
+  position:relative;
+  z-index:2;
+  transition:transform .35s cubic-bezier(.22,.61,.36,1);
+  touch-action:pan-y;
+}
+
+
+
+.swipe-edit-bg,
+.swipe-delete-bg{
+  cursor:pointer;
+  transition:filter .2s;
+}
+
+.swipe-edit-bg:active,
+.swipe-delete-bg:active{
+  filter:brightness(1.2);
+}
+.undo-toast{
+  position:fixed;
+  bottom:100px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#1a1435;
+  border:1px solid #6d5dfc;
+  padding:16px 24px;
+  border-radius:16px;
+  display:none;
+  z-index:999;
+  box-shadow:0 15px 40px rgba(0,0,0,.6);
+
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  text-align:center;
+}
+
+
+
+.undo-toast button{
+  margin:0;
+  padding:6px 14px;
+  border-radius:8px;
+  background:#6dff9c;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<main>
+
+<!-- ADD -->
+<section id="add" class="active">
+  <div class="dashboard">
+    <div class="dash-card"><span>Bank</span><strong id="dashBank">0</strong></div>
+    <div class="dash-card"><span>Profit</span><strong id="dashProfit">0</strong></div>
+    <div class="dash-card"><span>ROI</span><strong id="dashROI">0%</strong></div>
+    <div class="dash-card"><span>WR</span><strong id="dashWR">0%</strong></div>
+  </div>
+
+  <select id="sport"></select>
+  <select id="league"></select>
+  <select id="team"></select>
+  <select id="opponent"></select>
+  <select id="typ"></select>
+
+  <select id="tag">
+    <option value="">No tag</option>
+    <option>Value</option>
+    <option>Safe</option>
+    <option>Live</option>
+    <option>YOLO</option>
+  </select>
+
+  <select id="units">
+    <option value="1">1 unit</option>
+    <option value="2">2 units</option>
+    <option value="3">3 units</option>
+  </select>
+
+  <input id="stake" disabled placeholder="Stake">
+  <input id="odd" placeholder="Odd">
+<input id="note" placeholder="Notes (optional)">
+
+  <button onclick="addBet()">Save Bet</button>
+</section>
+
+<!-- HISTORY -->
+<section id="history">
+<input id="searchInput" placeholder="🔍 Search match..." oninput="render()">
+
+<select id="sortSelect" onchange="render()">
+  <option value="date">Sort: Date</option>
+  <option value="profit">Sort: Profit</option>
+  <option value="stake">Sort: Stake</option>
+</select>
+
+  <select id="filterSport"></select>
+  <select id="filterResult">
+    <option value="">All</option>
+    <option value="win">Win</option>
+    <option value="lose">Lose</option>
+    <option value="pending">Pending</option>
+  </select>
+  <select id="filterTag">
+    <option value="">All tags</option>
+    <option>Value</option>
+    <option>Safe</option>
+    <option>Live</option>
+    <option>YOLO</option>
+  </select>
+  <button onclick="exportCSV()">Export CSV</button>
+  <table><tbody id="rows"></tbody></table>
+</section>
+
+<!-- GRAPH -->
+<section id="stats">
+  <canvas id="chart"></canvas>
+</section>
+
+
+<!-- STATISTICS -->
+<section id="statistics">
+
+  <select id="statSport">
+    <option value="">All sports</option>
+  </select>
+
+  <select id="statLeague">
+    <option value="">All leagues</option>
+  </select>
+
+  <select id="statType">
+    <option value="">All bet types</option>
+  </select>
+
+  <div class="dashboard">
+    <div class="dash-card">
+      <span>Bets</span>
+      <strong id="statCount">0</strong>
+    </div>
+    <div class="dash-card">
+      <span>Winrate</span>
+      <strong id="statWR">0%</strong>
+    </div>
+    <div class="dash-card">
+      <span>Profit</span>
+      <strong id="statProfit">0</strong>
+    </div>
+    <div class="dash-card">
+      <span>ROI</span>
+      <strong id="statROI">0%</strong>
+    </div>
+  </div>
+
+  <h4>Best / Worst</h4>
+  <div id="bestWorstBox"></div>
+
+  <h4>By sport</h4>
+  <div id="statSportBox"></div>
+
+  <h4>By league</h4>
+  <div id="statLeagueBox"></div>
+
+  <h4>By bet type</h4>
+  <div id="statTypeBox"></div>
+
+</section>
+
+
+  
+
+
+
+<!-- SETTINGS -->
+<section id="settings">
+  <div class="settings-card">
+
+    <div class="settings-field">
+      <label>Starting bank</label>
+      <input id="startBankInput" placeholder="e.g. 1000">
+    </div>
+
+    <div class="settings-field">
+      <label>1 unit (%)</label>
+      <input id="unitPercentInput" placeholder="e.g. 2">
+    </div>
+
+    <div class="settings-field">
+      <label>Bonus credit</label>
+      <input id="bonusInput" placeholder="e.g. 50">
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn-primary" onclick="addBonus()">Add bonus</button>
+      <button class="btn-secondary" onclick="saveSetup()">Save setup</button>
+      <button class="btn-danger" onclick="resetAll()">Reset all</button>
+    </div>
+<button class="btn-secondary" onclick="showDeleted()">Deleted bets</button>
+
+<div id="deletedBox"></div>
+
+  </div>
+</section>
+
+
+</main>
+
+<nav class="bottom-nav">
+
+  <!-- HOME -->
+  <button class="active" onclick="show('add')">
+    <svg viewBox="0 0 24 24">
+      <path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12
+               M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75
+               v-4.875c0-.621.504-1.125 1.125-1.125h2.25
+               c.621 0 1.125.504 1.125 1.125V21h4.125
+               c.621 0 1.125-.504 1.125-1.125V9.75
+               M8.25 21h8.25"/>
+    </svg>
+    <span>Domů</span>
+  </button>
+
+<!-- HISTORY -->
+<button class="nav-item" onclick="show('history')">
+  <svg xmlns="http://www.w3.org/2000/svg"
+       fill="none"
+       viewBox="0 0 24 24"
+       stroke-width="1.8"
+       stroke="currentColor">
+    <path stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 6.042
+             A8.967 8.967 0 0 0 6 3.75
+             c-1.052 0-2.062.18-3 .512
+             v14.25
+             A8.987 8.987 0 0 1 6 18
+             c2.305 0 4.408.867 6 2.292
+             m0-14.25
+             a8.966 8.966 0 0 1 6-2.292
+             c1.052 0 2.062.18 3 .512
+             v14.25
+             A8.987 8.987 0 0 0 18 18
+             a8.967 8.967 0 0 0-6 2.292
+             m0-14.25v14.25" />
+  </svg>
+  <span>Historie</span>
+</button>
+
+
+  <!-- GRAPH -->
+  <button onclick="show('stats')">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 13.125h2.25v6.75H3Z
+               M9.75 8.625h2.25v11.25H9.75Z
+               M16.5 4.125h2.25v15.75H16.5Z"/>
+    </svg>
+    <span>Graf</span>
+  </button>
+
+  <!-- STATISTICS -->
+  <button onclick="show('statistics')">
+    <svg viewBox="0 0 24 24">
+      <path d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5Z"/>
+    </svg>
+    <span>Staty</span>
+  </button>
+
+ <!-- SETTINGS -->
+<button class="nav-item" onclick="show('settings')">
+  <svg xmlns="http://www.w3.org/2000/svg"
+       fill="none"
+       viewBox="0 0 24 24"
+       stroke-width="1.8"
+       stroke="currentColor">
+    <path stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M10.5 6h9.75
+             M10.5 6a1.5 1.5 0 1 1-3 0
+             m3 0a1.5 1.5 0 1 0-3 0
+             M3.75 6H7.5
+             m3 12h9.75
+             m-9.75 0a1.5 1.5 0 0 1-3 0
+             m3 0a1.5 1.5 0 0 0-3 0
+             m-3.75 0H7.5
+             m9-6h3.75
+             m-3.75 0a1.5 1.5 0 0 1-3 0
+             m3 0a1.5 1.5 0 0 0-3 0
+             m-9.75 0h9.75" />
+  </svg>
+  <span>Nastavení</span>
+</button>
+
+
+</nav>
+
+<script>
+/* ========= DATA ========= */
+const DATA = {
+  Football: {
+    "Premier League": ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Burnley","Chelsea","Crystal Palace","Everton","Fulham","Liverpool","Leeds","Man City","Man United","Newcastle","Nottingham","Sunderland","Tottenham","West Ham","Wolves"],
+
+    "La Liga": ["Alaves","Elche","Athletic Bilbao","Atletico Madrid","Barcelona","Betis","Cadiz","Celta Vigo","Getafe","Girona","Real Oviedo","Levante","Mallorca","Osasuna","Rayo Vallecano","Real Madrid","Real Sociedad","Sevilla","Valencia","Villarreal"],
+
+    "Bundesliga": ["Augsburg","Bayern","Hamburg","St. Pauli","Dortmund","Frankfurt","Freiburg","Heidenheim","Hoffenheim","Koln","Leipzig","Leverkusen","Mainz","Monchengladbach","Stuttgart","Union Berlin","Werder Bremen","Wolfsburg"],
+
+    "Serie A": ["Atalanta","Bologna","Cagliari","Empoli","Fiorentina","Frosinone","Pisa","Inter","Juventus","Lazio","Lecce","Milan","Cremonese","Napoli","Roma","Como","Sassuolo","Torino","Udinese","Verona"],
+
+    "Ligue 1": ["Brest","Angers","Lens","Le Havre","Lille","Lorient","Lyon","Marseille","Metz","Monaco","Paris FC","Nantes","Nice","PSG","Reims","Rennes","Strasbourg","Toulouse"]
+  },
+
+  Hockey: {
+    NHL: ["Boston","Toronto","NY Rangers"]
+  },
+
+  Basketball: {
+    NBA: ["Lakers","Celtics","Bulls"]
+  },
+
+  Darts: {
+    PL: ["Luke Littler","Luke Humphries"]
+  }
+};
+
+const BET_TYPES=["Home","Draw","Away","Over","Under","Handicap","BTTS","Own Bet"];
+const getDeleted = () => JSON.parse(localStorage.getItem("deletedBets") || "[]");
+const rows = document.getElementById("rows");
+
+const saveDeleted = d => localStorage.setItem("deletedBets", JSON.stringify(d));
+const getBets=()=>JSON.parse(localStorage.getItem("bets")||"[]");
+const saveBets=b=>localStorage.setItem("bets",JSON.stringify(b));
+const statSport = document.getElementById("statSport");
+const statLeague = document.getElementById("statLeague");
+const statType = document.getElementById("statType");
+
+
+let bankBase=+localStorage.getItem("bankBase")||0;
+let bonus=+localStorage.getItem("bonus")||0;
+let unitPercent=+localStorage.getItem("unitPercent")||0;
+let lastDeleted = null;
+let undoTimer = null;
+
+function showUndo(bet){
+  lastDeleted = bet;
+  const toast = document.getElementById("undoToast");
+  toast.style.display = "flex";
+
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(()=>{
+    toast.style.display = "none";
+    lastDeleted = null;
+  },5000);
+}
+
+function undoDelete(){
+  if(!lastDeleted) return;
+
+  const bets = getBets();
+  bets.push(lastDeleted);
+  saveBets(bets);
+
+  let deleted = getDeleted();
+  deleted = deleted.filter(b => b.id != lastDeleted.id);
+  saveDeleted(deleted);
+
+  lastDeleted = null;
+  document.getElementById("undoToast").style.display = "none";
+
+  update();
+}
+
+/* ========= INIT ========= */
+function init(){
+  sport.innerHTML=Object.keys(DATA).map(s=>`<option>${s}</option>`).join("");
+  filterSport.innerHTML='<option value="">All sports</option>'+sport.innerHTML;
+  sport.value="Football";
+  loadLeagues();
+  typ.innerHTML=BET_TYPES.map(t=>`<option>${t}</option>`).join("");
+}
+function loadLeagues(){
+  league.innerHTML=Object.keys(DATA[sport.value]).map(l=>`<option>${l}</option>`).join("");
+  loadTeams();
+}
+function loadTeams(){
+  team.innerHTML=DATA[sport.value][league.value].map(t=>`<option>${t}</option>`).join("");
+  opponent.innerHTML=DATA[sport.value][league.value].filter(t=>t!==team.value).map(t=>`<option>${t}</option>`).join("");
+}
+sport.onchange=loadLeagues;
+league.onchange=loadTeams;
+team.onchange = loadTeams;
+
+
+/* ========= STAKE ========= */
+units.onchange=()=>{
+  if(!unitPercent||!bankBase)return stake.value="";
+  stake.value=((bankBase*unitPercent/100)*units.value).toFixed(2);
+};
+
+/* ========= ADD BET ========= */
+function addBet(){
+  const s = +stake.value || 0;
+  const o = +odd.value;
+
+  if(!s || !o || o <= 1){
+    alert("Zadej platný kurz (větší než 1.00) a stake.");
+    return;
+  }
+
+  const bets = getBets();
+  bets.push({
+    id: Date.now(),
+    date: new Date().toISOString().slice(0,10),
+    sport: sport.value,
+    league: league.value,
+    match: team.value+" vs "+opponent.value,
+    typ: typ.value,
+    tag: tag.value,
+note: note.value,
+stake: s,
+
+    odd: o,
+    result: "pending",
+    profit: 0
+  });
+
+  saveBets(bets);
+  update();
+  show("history");
+}
+
+
+
+
+/* ========= HISTORY ========= */
+function render(){
+  rows.innerHTML="";
+
+  let bets = getBets().filter(b =>
+    (!filterSport.value || b.sport === filterSport.value) &&
+    (!filterResult.value || b.result === filterResult.value) &&
+    (!filterTag.value || b.tag === filterTag.value)
+  );
+
+  // SEARCH
+  const search = searchInput.value.toLowerCase();
+  if(search){
+    bets = bets.filter(b =>
+      b.match.toLowerCase().includes(search) ||
+      (b.note || "").toLowerCase().includes(search)
+    );
+  }
+
+  // SORT
+  const sort = sortSelect.value;
+
+  if(sort === "profit") bets.sort((a,b)=>b.profit - a.profit);
+  if(sort === "stake") bets.sort((a,b)=>b.stake - a.stake);
+  if(sort === "date") bets.sort((a,b)=>new Date(b.date) - new Date(a.date));
+
+  bets.forEach(b => {
+
+    let profitClass = "pending";
+    let profitText = "PENDING";
+
+    if(b.result === "win"){
+      profitClass = "win";
+      profitText = "+" + b.profit.toFixed(2);
+    }
+
+    if(b.result === "lose"){
+      profitClass = "lose";
+      profitText = b.profit.toFixed(2);
+    }
+
+    rows.innerHTML += `
+      <div class="history-wrapper">
+
+        <div class="swipe-edit-bg">✏️ EDIT</div>
+        <div class="swipe-delete-bg">🗑️ DELETE</div>
+
+        <div class="history-card" data-id="${b.id}">
+
+          <div class="history-header">
+            <span>${b.date}</span>
+            <span>${b.sport}</span>
+          </div>
+
+          <div class="history-match">${b.match}</div>
+
+          ${b.note ? `<div style="font-size:12px;color:#9aa4bf">${b.note}</div>` : ""}
+
+          <div class="history-footer">
+            <div>${b.typ} ${b.tag ? "• " + b.tag : ""}</div>
+            <div class="history-profit ${profitClass}">
+              ${profitText}
+            </div>
+          </div>
+
+          ${
+            b.result === "pending"
+            ? `
+              <div class="history-actions">
+                <button onclick="resolveBet(${b.id},'win')">WIN</button>
+                <button onclick="resolveBet(${b.id},'lose')">LOSE</button>
+              </div>
+            `
+            : ""
+          }
+
+        </div>
+
+      </div>
+    `;
+  });
+
+  enableSwipe();
+}
+
+
+function editBet(id){
+  const bets = getBets();
+  const b = bets.find(x => x.id == id);
+  if(!b) return;
+
+  show("add");
+
+  sport.value = b.sport;
+  loadLeagues();
+  league.value = b.league;
+  loadTeams();
+
+  team.value = b.match.split(" vs ")[0];
+  loadTeams();
+  opponent.value = b.match.split(" vs ")[1];
+
+  typ.value = b.typ;
+  tag.value = b.tag;
+  odd.value = b.odd;
+  stake.value = b.stake;
+
+  deleteBet(id);
+}
+
+function enableSwipe(){
+  document.querySelectorAll(".history-card").forEach(card=>{
+
+    let startX = 0;
+    let moved = 0;
+
+    const wrapper = card.closest(".history-wrapper");
+    const editBg = wrapper.querySelector(".swipe-edit-bg");
+    const deleteBg = wrapper.querySelector(".swipe-delete-bg");
+
+    card.addEventListener("touchstart", e=>{
+      startX = e.touches[0].clientX;
+      card.style.transition = "none";
+    });
+
+    card.addEventListener("touchmove", e=>{
+      let currentX = e.touches[0].clientX;
+      moved = currentX - startX;
+
+      if(moved > 120) moved = 120;
+      if(moved < -120) moved = -120;
+
+      card.style.transform = `translateX(${moved}px)`;
+    });
+
+    card.addEventListener("touchend", ()=>{
+
+      card.style.transition = "transform .35s cubic-bezier(.22,.61,.36,1)";
+
+      // 👉 EDIT STOP
+      if(moved > 60){
+        card.style.transform = "translateX(120px)";
+        return;
+      }
+
+      // 👈 DELETE STOP
+      if(moved < -60){
+        card.style.transform = "translateX(-120px)";
+        return;
+      }
+
+      // RESET
+      card.style.transform = "translateX(0)";
+      moved = 0;
+    });
+
+    // TAP EDIT
+    editBg.onclick = ()=>{
+      editBet(card.dataset.id);
+    };
+
+    // TAP DELETE
+    deleteBg.onclick = ()=>{
+      deleteBet(card.dataset.id);
+    };
+
+  });
+}
+
+
+
+
+function deleteBet(id){
+  let bets = getBets();
+  const removed = bets.find(b => b.id == id);
+
+  bets = bets.filter(b => b.id != id);
+  saveBets(bets);
+
+  // uložit do koše
+  const deleted = getDeleted();
+  if(removed){
+  deleted.push(removed);
+  saveDeleted(deleted);
+}
+
+  saveDeleted(deleted);
+
+  showUndo(removed);
+
+  update();
+}
+
+function showDeleted(){
+  const box = document.getElementById("deletedBox");
+  const deleted = getDeleted();
+
+  if(!deleted.length){
+    box.innerHTML = "<p>No deleted bets</p>";
+    return;
+  }
+
+  box.innerHTML = deleted.map(b=>`
+    <div class="stat-line">
+      <span>${b.match}</span>
+      <button onclick="restoreBet(${b.id})">Restore</button>
+    </div>
+  `).join("");
+}
+
+function restoreBet(id){
+  let deleted = getDeleted();
+  const bet = deleted.find(b=>b.id==id);
+
+  if(!bet) return;
+
+  const bets = getBets();
+  bets.push(bet);
+  saveBets(bets);
+
+  deleted = deleted.filter(b=>b.id!=id);
+  saveDeleted(deleted);
+
+  showDeleted();
+  update();
+}
+
+
+function resolveBet(id, res){
+  const bets = getBets();
+  const b = bets.find(x => x.id === id);
+  if(!b || b.result !== "pending") return;
+
+  b.result = res;
+  b.profit = res === "win"
+    ? b.stake * b.odd - b.stake
+    : -b.stake;
+
+  bankBase += b.profit;
+  saveBets(bets);
+  update();
+}
+
+
+
+/* ========= DASH ========= */
+function update(){
+  const bets=getBets();
+  let profit=0,stakeSum=0,w=0,r=0;
+  bets.forEach(b=>{
+    if(b.result==="pending")return;
+    r++;stakeSum+=b.stake;profit+=b.profit;
+    if(b.result==="win")w++;
+  });
+  dashBank.textContent=(bankBase+bonus).toFixed(2);
+  dashProfit.textContent=profit.toFixed(2);
+  dashROI.textContent=stakeSum?((profit/stakeSum)*100).toFixed(1)+"%":"0%";
+  dashWR.textContent=r?((w/r)*100).toFixed(1)+"%":"0%";
+  render();draw();
+}
+
+/* ========= CHART ========= */
+let chart=null;
+function draw(){
+  const bets = getBets();
+
+  const labels = bets.map(b => b.date);
+
+  const sports = ["Football","Hockey","Basketball","Darts"];
+
+  let total = 0;
+  const totalData = [];
+  const bySport = {};
+
+  sports.forEach(s => bySport[s] = []);
+
+  bets.forEach((b,i)=>{
+    sports.forEach(s=>{
+      bySport[s][i] = (bySport[s][i-1] || 0);
+    });
+
+    total += b.profit || 0;
+    totalData[i] = total;
+
+    if(bySport[b.sport]){
+      bySport[b.sport][i] =
+        (bySport[b.sport][i-1] || 0) + (b.profit || 0);
+    }
+  });
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart")
+,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[
+        { label:"All", data: totalData, borderWidth:3 },
+        { label:"Football", data: bySport.Football },
+        { label:"Hockey", data: bySport.Hockey },
+        { label:"Basketball", data: bySport.Basketball },
+        { label:"Darts", data: bySport.Darts }
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{ position:"bottom" }
+      }
+    }
+  });
+}
+
+
+
+/* ========= SETTINGS ========= */
+function saveSetup(){
+  bankBase=+startBankInput.value||0;
+  unitPercent=+unitPercentInput.value||0;
+  localStorage.setItem("bankBase",bankBase);
+  localStorage.setItem("unitPercent",unitPercent);
+  update();
+}
+function addBonus(){
+  bonus+=+bonusInput.value||0;
+  localStorage.setItem("bonus",bonus);
+  bonusInput.value="";
+  update();
+}
+function resetAll(){
+  document.getElementById("resetModal").classList.add("active");
+}
+
+function closeReset(){
+  document.getElementById("resetModal").classList.remove("active");
+}
+document.addEventListener("click", e=>{
+  if(
+    !e.target.closest(".undo-toast") &&
+    !e.target.closest(".swipe-delete-bg")
+  ){
+    document.getElementById("undoToast").style.display="none";
+  }
+});
+
+
+function confirmReset(){
+  localStorage.clear();
+  location.reload();
+}
+
+
+/* ========= NAV ========= */
+function show(id){
+  document.querySelectorAll("section")
+    .forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  document.querySelectorAll(".bottom-nav button")
+    .forEach(b=>b.classList.remove("active"));
+
+  // 🔥 NAJDI TLAČÍTKO PODLE onclick
+  document
+    .querySelector(`.bottom-nav button[onclick="show('${id}')"]`)
+    ?.classList.add("active");
+
+
+
+if(id === "stats"){
+  draw();
+}
+
+if(id === "statistics"){
+  initStatFilters();
+  renderStats();
+  renderPercentStats();
+}
+}
+
+
+/* ========= EXPORT ========= */
+function exportCSV(){
+  const rows=[["Date","Sport","Match","Type","Tag","Stake","Odd","Result","Profit"]];
+  getBets().forEach(b=>rows.push([b.date,b.sport,b.match,b.typ,b.tag,b.stake,b.odd,b.result,b.profit]));
+  const csv=rows.map(r=>r.join(",")).join("\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download="bets.csv";a.click();
+}
+
+init();update();
+function initStatFilters(){
+  statSport.innerHTML =
+    '<option value="">All sports</option>' +
+    Object.keys(DATA).map(s=>`<option>${s}</option>`).join("");
+
+  statType.innerHTML =
+    '<option value="">All bet types</option>' +
+    BET_TYPES.map(t=>`<option>${t}</option>`).join("");
+}
+
+statSport.onchange = ()=>{
+  statLeague.innerHTML = '<option value="">All leagues</option>';
+  if(statSport.value && DATA[statSport.value]){
+    statLeague.innerHTML +=
+      Object.keys(DATA[statSport.value]).map(l=>`<option>${l}</option>`).join("");
+  }
+  renderStats();
+};
+
+statLeague.onchange = statType.onchange = renderStats;
+
+function renderStats(){
+  const bets = getBets().filter(b=>{
+    if(b.result === "pending") return false;
+    if(statSport.value && b.sport !== statSport.value) return false;
+    if(statLeague.value && b.league !== statLeague.value) return false;
+    if(statType.value && b.typ !== statType.value) return false;
+    return true;
+  });
+
+  let profit = 0;
+  let stakeSum = 0;
+  let wins = 0;
+
+  bets.forEach(b=>{
+    stakeSum += b.stake;
+    profit += b.profit;
+    if(b.result === "win") wins++;
+  });
+
+  const wr = bets.length ? (wins / bets.length * 100).toFixed(1) : 0;
+  const roi = stakeSum ? (profit / stakeSum * 100).toFixed(1) : 0;
+
+  document.getElementById("statCount").textContent = bets.length;
+  document.getElementById("statWR").textContent = wr + "%";
+  document.getElementById("statProfit").textContent = profit.toFixed(2);
+  document.getElementById("statROI").textContent = roi + "%";
+}
+function renderPercentStats(){
+  const bets = getBets().filter(b=>b.result!=="pending");
+
+  // SUMMARY
+  let totalProfit = 0, totalStake = 0, wins = 0;
+  bets.forEach(b=>{
+    totalProfit += b.profit;
+    totalStake += b.stake;
+    if(b.result==="win") wins++;
+  });
+
+  // MAP BUILDER
+const buildMap = key=>{
+  const map={};
+
+  bets.forEach(b=>{
+    const k=b[key];
+    if(!k) return;
+
+    if(!map[k]) map[k]={w:0,t:0,stake:0,profit:0};
+    map[k].t++;
+    map[k].stake+=b.stake;
+    map[k].profit+=b.profit;
+    if(b.result==="win") map[k].w++;
+  });
+
+  return Object.entries(map)
+    .map(([k,v])=>{
+      const wr=(v.w/v.t)*100;
+      const roi=v.stake?(v.profit/v.stake)*100:0;
+      return {k,...v,wr,roi};
+    })
+    .sort((a,b)=>b.roi-a.roi);
+};
+
+
+  const renderBox = (box,data)=>{
+    box.innerHTML=data.map(d=>{
+      const cls = d.roi>5?"good":d.roi>=0?"mid":"bad";
+      return `
+        <div class="stat-line" data-roi="${Math.floor(d.roi)}">
+  <span>${d.k}</span>
+  <div style="text-align:right">
+    <strong>${d.roi.toFixed(1)}%</strong><br>
+    <small>${d.w}/${d.t} • WR ${d.wr.toFixed(1)}%</small>
+  </div>
+</div>
+
+      `;
+    }).join("") || `<div class="stat-line">No data</div>`;
+  };
+
+  const sportData = buildMap("sport");
+  const leagueData = buildMap("league");
+  const typeData = buildMap("typ");
+
+  renderBox(statSportBox, sportData);
+  renderBox(statLeagueBox, leagueData);
+  renderBox(statTypeBox, typeData);
+
+  // BEST / WORST
+  const best = [...sportData, ...leagueData, ...typeData].sort((a,b)=>b.roi-a.roi)[0];
+  const worst = [...sportData, ...leagueData, ...typeData].sort((a,b)=>a.roi-b.roi)[0];
+
+  bestWorstBox.innerHTML = best ? `
+    <div class="stat-line good">🔥 Best: ${best.k} (${best.roi.toFixed(1)}%)</div>
+    <div class="stat-line bad">⚠️ Worst: ${worst.k} (${worst.roi.toFixed(1)}%)</div>
+  ` : `<div class="stat-line">No data</div>`;
+}
+
+</script>
+
+<div id="resetModal" class="reset-modal">
+  <div class="reset-box">
+    <h3>Reset all data?</h3>
+    <p>This action is irreversible.</p>
+    <div class="reset-actions">
+      <button class="btn-secondary" onclick="closeReset()">Cancel</button>
+      <button class="btn-danger" onclick="confirmReset()">Yes, reset</button>
+    </div>
+  </div>
+</div>
+<div id="undoToast" class="undo-toast">
+  Bet deleted
+  <button onclick="undoDelete()">UNDO</button>
+</div>
+
+</body>
+</html> 

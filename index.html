@@ -1,13 +1,17 @@
-<!DOCTYPE html>
-<html lang="cs">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>Sázkový deník</title>
+
+
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
 :root{
@@ -504,10 +508,21 @@ button{
   </div>
 
   <select id="sport"></select>
+<select id="betMode">
+  <option value="single">Single</option>
+  <option value="parlay">Parlay (AKO)</option>
+</select>
+<!-- Pouze pokud je parlay -->
+<input id="parlayLegsCount" type="number" min="2" placeholder="Počet legů" style="display:none">
+<div id="parlayLegsContainer" style="display:none; margin-bottom:8px;"></div>
+<button id="addParlayLeg" style="display:none">Přidat leg</button>
+
   <select id="league"></select>
   <select id="team"></select>
   <select id="opponent"></select>
-  <select id="typ"></select>
+  <input id="betTypeSearch" placeholder="🔍 Search bet type...">
+<select id="typ"></select>
+
 
   <select id="tag">
     <option value="">No tag</option>
@@ -525,9 +540,13 @@ button{
 
   <input id="stake" disabled placeholder="Stake">
   <input id="odd" placeholder="Odd">
+<input id="parlayOdd" placeholder="Combined odd" style="display:none">
+
 <input id="note" placeholder="Notes (optional)">
 
   <button onclick="addBet()">Save Bet</button>
+
+
 </section>
 
 <!-- HISTORY -->
@@ -637,6 +656,13 @@ button{
     </div>
 
     <div class="settings-actions">
+<hr>
+<h4>Import Betano CSV</h4>
+<input type="file" accept=".csv" onchange="importBetano(event)">
+<hr>
+<h4>Import ze screenshotu</h4>
+<input type="file" accept="image/*" onchange="importScreenshot(event)">
+
       <button class="btn-primary" onclick="addBonus()">Add bonus</button>
       <button class="btn-secondary" onclick="saveSetup()">Save setup</button>
       <button class="btn-danger" onclick="resetAll()">Reset all</button>
@@ -740,12 +766,74 @@ button{
 </nav>
 
 <script>
+let ocrWorker = null;
+
+async function getOCR(){
+  if(ocrWorker) return ocrWorker;
+
+  ocrWorker = await Tesseract.createWorker("ces+eng", 1, {
+    logger: ()=>{}
+  });
+
+  await ocrWorker.setParameters({
+    tessedit_pageseg_mode: 3,   // 🔥 AUTO LAYOUT (lepší než 6)
+    preserve_interword_spaces: 1
+  });
+
+  return ocrWorker;
+}
+async function cropBottomArea(file){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = img.width * 3;
+      canvas.height = img.height * 3;
+
+      ctx.drawImage(
+        img,
+        0, 0, img.width, img.height,
+        0, 0, canvas.width, canvas.height
+      );
+
+      resolve(canvas);
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function findClosestTeam(name){
+  name = name.toLowerCase();
+
+  for(const leagues of Object.values(DATA)){
+    for(const teams of Object.values(leagues)){
+      for(const t of teams){
+        if(name.includes(t.toLowerCase())) return t;
+      }
+    }
+  }
+  return null;
+}
+
+
+const sport = document.getElementById("sport");
+const league = document.getElementById("league");
+const team = document.getElementById("team");
+const opponent = document.getElementById("opponent");
+const typ = document.getElementById("typ");
+const betTypeSearch = document.getElementById("betTypeSearch");
+const units = document.getElementById("units");
+const stake = document.getElementById("stake");
+
 /* ========= DATA ========= */
 const DATA = {
   Football: {
     "Premier League": ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Burnley","Chelsea","Crystal Palace","Everton","Fulham","Liverpool","Leeds","Man City","Man United","Newcastle","Nottingham","Sunderland","Tottenham","West Ham","Wolves"],
 
-    "La Liga": ["Alaves","Elche","Athletic Bilbao","Atletico Madrid","Barcelona","Betis","Cadiz","Celta Vigo","Getafe","Girona","Real Oviedo","Levante","Mallorca","Osasuna","Rayo Vallecano","Real Madrid","Real Sociedad","Sevilla","Valencia","Villarreal"],
+    "La Liga": ["Alaves","Elche","Athletic Bilbao","Atletico Madrid","Barcelona","Betis","Cadiz","Celta Vigo","Getafe","Girona","Real Oviedo","Levante","Mallorca","Osasuna","Rayo Vallecano","Real Madrid","Real Sociedad","Sevilla","Valencia CF","Villarreal"],
 
     "Bundesliga": ["Augsburg","Bayern","Hamburg","St. Pauli","Dortmund","Frankfurt","Freiburg","Heidenheim","Hoffenheim","Koln","Leipzig","Leverkusen","Mainz","Monchengladbach","Stuttgart","Union Berlin","Werder Bremen","Wolfsburg"],
 
@@ -767,7 +855,102 @@ const DATA = {
   }
 };
 
-const BET_TYPES=["Home","Draw","Away","Over","Under","Handicap","BTTS","Own Bet"];
+const BET_TYPES = {
+  Football: [
+    "Domácí",
+    "Remíza",
+    "Hosté",
+    "1X",
+    "12",
+    "X2",
+    "Více než",
+    "Méně než",
+    "Oba dají gól",
+    "Oba dají gól nebo více než 2,5",
+    "Výsledek poločasu",
+    "Góly v poločase",
+    "Výsledek a počet gólů",
+    "Výsledek a oba dají gól",
+    "Handicap",
+    "Poločas/Zápas",
+    "Přesné skóre",
+    "Další gól",
+    "Počet gólů týmu",
+    "Střelec gólu",
+    "Střelec 2+",
+    "Počet karet"
+  ],
+
+  Hockey: [
+    "Domácí",
+    "Remíza",
+    "Hosté",
+    "1X",
+    "12",
+    "X2",
+    "Více než",
+    "Méně než",
+    "Handicap",
+    "Výsledek 1. třetiny",
+    "Výsledek 2. třetiny",
+    "Výsledek 3. třetiny",
+    "Počet gólů týmu",
+    "Výsledek a počet gólů",
+    "Oba dají gól",
+    "Další gól",
+    "Oba dají gól 2+",
+    "Oba dají gól 3+",
+    "Přesný počet gólů",
+    "Góly 1. třetina",
+    "Góly 2. třetina",
+    "Góly 3. třetina",
+    "Střelec gólu",
+    "Střelec 2+",
+    "Střelec 3+",
+    "Asistence",
+    "Asistence 2+",
+    "Asistence 3+",
+    "Bod",
+    "Bod 2+",
+    "Bod 3+"
+  ],
+
+  Basketball: [
+    "Domácí",
+    "Remíza",
+    "Hosté",
+    "Více než",
+    "Méně než",
+    "Výsledek a over/under",
+    "Handicap",
+    "Poločas/Zápas",
+    "Body týmu",
+    "Rozdíl bodů",
+    "Body hráče",
+    "Asistence hráče",
+    "Doskoky hráče"
+  ],
+
+  Darts: [
+    "1",
+    "2",
+    "Více než",
+    "Méně než",
+    "Počet 180",
+    "9 šipek",
+    "Vlastní sázka"
+  ]
+};
+
+
+const SPORT_ICONS = {
+  Football: "⚽ Fotbal",
+  Hockey: "🏒 Hokej",
+  Basketball: "🏀 Basketbal",
+  Darts: "🎯 Šipky"
+};
+
+
 const getDeleted = () => JSON.parse(localStorage.getItem("deletedBets") || "[]");
 const rows = document.getElementById("rows");
 
@@ -816,21 +999,49 @@ function undoDelete(){
 
 /* ========= INIT ========= */
 function init(){
-  sport.innerHTML=Object.keys(DATA).map(s=>`<option>${s}</option>`).join("");
+sport.innerHTML = Object.keys(DATA)
+  .map(s=>`<option value="${s}">${SPORT_ICONS[s]}</option>`)
+
+  .join("");
+
   filterSport.innerHTML='<option value="">All sports</option>'+sport.innerHTML;
   sport.value="Football";
   loadLeagues();
-  typ.innerHTML=BET_TYPES.map(t=>`<option>${t}</option>`).join("");
+  loadBetTypes();
+
 }
 function loadLeagues(){
   league.innerHTML=Object.keys(DATA[sport.value]).map(l=>`<option>${l}</option>`).join("");
   loadTeams();
+
 }
 function loadTeams(){
   team.innerHTML=DATA[sport.value][league.value].map(t=>`<option>${t}</option>`).join("");
   opponent.innerHTML=DATA[sport.value][league.value].filter(t=>t!==team.value).map(t=>`<option>${t}</option>`).join("");
 }
-sport.onchange=loadLeagues;
+function loadBetTypes(){
+  betTypeSearch.value = "";
+  const types = BET_TYPES[sport.value] || [];
+  typ.innerHTML = types.map(t=>`<option>${t}</option>`).join("");
+}
+
+function filterBetTypes(){
+  const search = betTypeSearch.value.toLowerCase();
+  const types = BET_TYPES[sport.value] || [];
+
+  typ.innerHTML = types
+    .filter(t => t.toLowerCase().includes(search))
+    .map(t=>`<option>${t}</option>`)
+    .join("");
+}
+
+betTypeSearch.oninput = filterBetTypes;
+
+sport.onchange = () => {
+  loadLeagues();
+  loadBetTypes();
+};
+
 league.onchange=loadTeams;
 team.onchange = loadTeams;
 
@@ -844,7 +1055,7 @@ units.onchange=()=>{
 /* ========= ADD BET ========= */
 function addBet(){
   const s = +stake.value || 0;
-  const o = +odd.value;
+  const o = betMode.value === "parlay" ? +parlayOdd.value : +odd.value;
 
   if(!s || !o || o <= 1){
     alert("Zadej platný kurz (větší než 1.00) a stake.");
@@ -852,26 +1063,60 @@ function addBet(){
   }
 
   const bets = getBets();
-  bets.push({
-    id: Date.now(),
-    date: new Date().toISOString().slice(0,10),
-    sport: sport.value,
-    league: league.value,
-    match: team.value+" vs "+opponent.value,
-    typ: typ.value,
-    tag: tag.value,
-note: note.value,
-stake: s,
 
-    odd: o,
-    result: "pending",
-    profit: 0
-  });
+  if(betMode.value === "parlay"){
+    const legs = Array.from(parlayLegsContainer.children).map(div=>{
+      const sport = div.querySelector(".parlaySport").value || "Football";
+      const league = div.querySelector(".parlayLeague").value || Object.keys(DATA[sport])[0];
+      const team = div.querySelector(".parlayTeam").value || DATA[sport][league][0];
+      const opponent = div.querySelector(".parlayOpponent").value || DATA[sport][league].find(t=>t!==team);
+      const typ = div.querySelector(".parlayType").value || BET_TYPES[0];
+      return {
+        sport,
+        league,
+        match: team+" vs "+opponent,
+        typ
+      };
+    });
+
+    bets.push({
+      id: Date.now(),
+      date: new Date().toISOString().slice(0,10),
+      mode: "parlay",
+      legs: legs,
+      tag: tag.value,
+      note: note.value,
+      stake: s,
+      odd: +parlayOdd.value,
+      result: "pending",
+      profit: 0
+    });
+
+  } else { // <-- tady musí být ELSE blok
+    bets.push({
+      id: Date.now(),
+      date: new Date().toISOString().slice(0,10),
+      sport: sport.value,
+      league: league.value,
+      match: team.value+" vs "+opponent.value,
+      typ: typ.value,
+      tag: tag.value,
+      note: note.value,
+      stake: s,
+      odd: o,
+      mode: "single",
+      result: "pending",
+      profit: 0
+    });
+  }
 
   saveBets(bets);
   update();
   show("history");
 }
+
+
+
 
 
 
@@ -927,7 +1172,8 @@ function render(){
 
           <div class="history-header">
             <span>${b.date}</span>
-            <span>${b.sport}</span>
+            <span>${SPORT_ICONS[b.sport] || ""} ${b.sport}</span>
+
           </div>
 
           <div class="history-match">${b.match}</div>
@@ -935,7 +1181,15 @@ function render(){
           ${b.note ? `<div style="font-size:12px;color:#9aa4bf">${b.note}</div>` : ""}
 
           <div class="history-footer">
-            <div>${b.typ} ${b.tag ? "• " + b.tag : ""}</div>
+            <div>
+${b.mode === "parlay" 
+   ? `AKO • ${b.legs.map(l=>`[${l.typ}] ${l.match}`).join(" • ")}`
+   : b.typ}
+
+
+  ${b.tag ? " • " + b.tag : ""}
+</div>
+
             <div class="history-profit ${profitClass}">
               ${profitText}
             </div>
@@ -969,22 +1223,33 @@ function editBet(id){
 
   show("add");
 
-  sport.value = b.sport;
-  loadLeagues();
-  league.value = b.league;
-  loadTeams();
+  if(b.mode === "parlay"){
+    parlayLegsContainer.innerHTML = "";
+    b.legs.forEach(leg=>{
+      addParlayLegBtn.click();
+      const div = parlayLegsContainer.lastChild;
+      div.querySelector(".parlaySport").value = leg.sport;
+     
+    });
+    parlayOdd.value = b.odd;
+  } else {
+    sport.value = b.sport;
+    loadLeagues();
+    league.value = b.league;
+    loadTeams();
+    team.value = b.match.split(" vs ")[0];
+    opponent.value = b.match.split(" vs ")[1];
+    typ.value = b.typ;
+    odd.value = b.odd;
+  }
 
-  team.value = b.match.split(" vs ")[0];
-  loadTeams();
-  opponent.value = b.match.split(" vs ")[1];
-
-  typ.value = b.typ;
-  tag.value = b.tag;
-  odd.value = b.odd;
   stake.value = b.stake;
+  tag.value = b.tag;
+  note.value = b.note;
 
   deleteBet(id);
 }
+
 
 function enableSwipe(){
   document.querySelectorAll(".history-card").forEach(card=>{
@@ -1114,7 +1379,7 @@ function resolveBet(id, res){
     ? b.stake * b.odd - b.stake
     : -b.stake;
 
-  bankBase += b.profit;
+ 
   saveBets(bets);
   update();
 }
@@ -1123,19 +1388,33 @@ function resolveBet(id, res){
 
 /* ========= DASH ========= */
 function update(){
-  const bets=getBets();
-  let profit=0,stakeSum=0,w=0,r=0;
+  const bets = getBets();
+
+  let profit = 0;
+  let stakeSum = 0;
+  let wins = 0;
+  let resolved = 0;
+
   bets.forEach(b=>{
-    if(b.result==="pending")return;
-    r++;stakeSum+=b.stake;profit+=b.profit;
-    if(b.result==="win")w++;
+    if(b.result==="pending") return;
+
+    resolved++;
+    stakeSum += b.stake;
+    profit += b.profit;
+    if(b.result==="win") wins++;
   });
-  dashBank.textContent=(bankBase+bonus).toFixed(2);
-  dashProfit.textContent=profit.toFixed(2);
-  dashROI.textContent=stakeSum?((profit/stakeSum)*100).toFixed(1)+"%":"0%";
-  dashWR.textContent=r?((w/r)*100).toFixed(1)+"%":"0%";
-  render();draw();
+
+  const currentBank = bankBase + bonus + profit;
+
+  dashBank.textContent = currentBank.toFixed(2);
+  dashProfit.textContent = profit.toFixed(2);
+  dashROI.textContent = stakeSum ? ((profit/stakeSum)*100).toFixed(1)+"%" : "0%";
+  dashWR.textContent = resolved ? ((wins/resolved)*100).toFixed(1)+"%" : "0%";
+
+  render();
+  draw();
 }
+
 
 /* ========= CHART ========= */
 let chart=null;
@@ -1268,14 +1547,305 @@ function exportCSV(){
 }
 
 init();update();
+setTimeout(()=>getOCR(),1000);
+
+const betMode = document.getElementById("betMode");
+const parlayLegsCountInput = document.getElementById("parlayLegsCount");
+const parlayLegsContainer = document.getElementById("parlayLegsContainer");
+const addParlayLegBtn = document.getElementById("addParlayLeg");
+
+const oddInput = document.getElementById("odd");
+const parlayOddInput = document.getElementById("parlayOdd");
+
+betMode.onchange = () => {
+  if(betMode.value === "parlay"){
+    oddInput.style.display = "none";
+    parlayOddInput.style.display = "block";
+    parlayLegsCountInput.style.display = "block";
+    parlayLegsContainer.style.display = "block";
+    addParlayLegBtn.style.display = "block";
+    parlayLegsContainer.innerHTML = "";
+  } else {
+    oddInput.style.display = "block";
+    parlayOddInput.style.display = "none";
+    parlayLegsCountInput.style.display = "none";
+    parlayLegsContainer.style.display = "none";
+    addParlayLegBtn.style.display = "none";
+    parlayLegsContainer.innerHTML = "";
+  }
+};
+
+addParlayLegBtn.onclick = () => {
+  const legIndex = parlayLegsContainer.children.length + 1;
+  const div = document.createElement("div");
+  div.style.marginBottom = "6px";
+  div.innerHTML = `
+    <select class="parlaySport">
+      ${Object.keys(DATA).map(s =>
+  `<option value="${s}">${SPORT_ICONS[s]} ${s}</option>`
+).join("")}
+
+    </select>
+    <select class="parlayLeague"></select>
+    <select class="parlayTeam"></select>
+    <select class="parlayOpponent"></select>
+<select class="parlayType"></select>
+
+  `;
+  parlayLegsContainer.appendChild(div);
+
+  const sportSelect = div.querySelector(".parlaySport");
+  const leagueSelect = div.querySelector(".parlayLeague");
+  const teamSelect = div.querySelector(".parlayTeam");
+  const opponentSelect = div.querySelector(".parlayOpponent");
+}
+function loadParlayTeams(){
+  leagueSelect.innerHTML =
+    Object.keys(DATA[sportSelect.value]).map(l=>`<option>${l}</option>`).join("");
+
+  teamSelect.innerHTML =
+    DATA[sportSelect.value][leagueSelect.value].map(t=>`<option>${t}</option>`).join("");
+
+  opponentSelect.innerHTML =
+    DATA[sportSelect.value][leagueSelect.value]
+      .filter(t=>t!==teamSelect.value)
+      .map(t=>`<option>${t}</option>`).join("");
+
+  // UPDATE BET TYPES
+  const typeSelect = div.querySelector(".parlayType");
+  typeSelect.innerHTML =
+    (BET_TYPES[sportSelect.value] || [])
+      .map(t=>`<option>${t}</option>`).join("");
+}
+function importBetano(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(evt){
+    const text = evt.target.result;
+
+    // Betano CSV bývá oddělen čárkou nebo středníkem
+    const delimiter = text.includes(";") ? ";" : ",";
+
+    const lines = text.split("\n").slice(1);
+    const bets = getBets();
+
+    lines.forEach(line=>{
+      if(!line.trim()) return;
+
+      const cols = line.split(delimiter);
+
+      // ⚠️ typická struktura Betano exportu
+      const date = cols[0];
+      const match = cols[1];
+      const betType = cols[2];
+      const odd = parseFloat(cols[3]?.replace(",","."));
+      const stake = parseFloat(cols[4]?.replace(",","."));
+      const resultText = cols[5]?.toLowerCase();
+
+      if(!stake || !odd) return;
+
+      let result = "pending";
+      let profit = 0;
+
+      if(resultText?.includes("won") || resultText?.includes("výhra")){
+        result = "win";
+        profit = stake * odd - stake;
+      }
+
+      if(resultText?.includes("lost") || resultText?.includes("prohra")){
+        result = "lose";
+        profit = -stake;
+      }
+
+      bets.push({
+        id: Date.now()+Math.random(),
+        date: date || new Date().toISOString().slice(0,10),
+        sport: "Football",
+        league: "Betano",
+        match: match || "Imported match",
+        typ: betType || "Imported",
+        tag: "Betano",
+        note: "Betano import",
+        stake,
+        odd,
+        mode:"single",
+        result,
+        profit
+      });
+    });
+
+    saveBets(bets);
+    update();
+    alert("Betano import dokončen ✅");
+  };
+
+  reader.readAsText(file,"utf-8");
+}
+function findTeamAndLeague(teamName){
+  teamName = teamName.toLowerCase();
+
+  for(const [leagueName, teams] of Object.entries(DATA.Football)){
+    for(const t of teams){
+      if(teamName.includes(t.toLowerCase())){
+        return {
+          team: t,
+          league: leagueName
+        };
+      }
+    }
+  }
+
+  return null;
+}
+function normalize(str){
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"") // odstraní diakritiku
+    .replace(/[^a-z0-9\s]/g,"")     // odstraní znaky
+    .replace(/\s+/g," ")
+    .trim();
+}
+async function importScreenshot(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  alert("Načítám sázku...");
+
+  const cropped = await cropBottomArea(file);
+  const worker = await getOCR();
+  const result = await worker.recognize(cropped);
+
+const text = result.data.blocks
+  .map(b => b.text)
+  .join(" ");
+  console.log("OCR:", text);
+
+  const clean = text.replace(/\n/g," ");
+
+/* ==============================
+   SMART TEAM SCORING FIXED
+============================== */
+
+let scoredTeams = [];
+
+const cleanNorm = normalize(clean);
+
+for(const [leagueName, teams] of Object.entries(DATA.Football)){
+  for(const t of teams){
+
+    const teamNorm = normalize(t);
+    const words = teamNorm.split(" ");
+
+    let score = 0;
+
+    words.forEach(w=>{
+      if(cleanNorm.includes(w)) score++;
+    });
+
+    if(score > 0){
+      scoredTeams.push({
+        team: t,
+        league: leagueName,
+        score: score
+      });
+    }
+  }
+}
+
+// seřadit podle skóre
+scoredTeams.sort((a,b)=>b.score - a.score);
+
+// vezmeme jen týmy s nejvyšším score
+if(scoredTeams.length){
+
+  const bestScore = scoredTeams[0].score;
+  const bestTeams = scoredTeams.filter(t => t.score === bestScore);
+
+  if(bestTeams.length >= 2){
+
+    const home = bestTeams[0];
+    const away = bestTeams[1];
+
+    sport.value = "Football";
+    loadLeagues();
+
+league.value = home.league;
+loadTeams();
+
+team.value = home.team;
+loadTeams();
+
+opponent.value = away.team;
+  }
+}
+  /* /* ==============================
+   BET TYPE (SMART)
+============================== */
+
+const lower = clean.toLowerCase();
+
+if(lower.includes("více než") && !lower.includes("méně než")){
+  typ.value = "Více než";
+}
+else if(lower.includes("méně než") && !lower.includes("více než")){
+  typ.value = "Méně než";
+}
+else if(lower.includes("oba dají gól")){
+  typ.value = "Oba dají gól";
+}
+else if(lower.includes("handicap")){
+  typ.value = "Handicap";
+}
+  /* ==============================
+     3️⃣ STAKE (SOLO sázka 5,00 Kč)
+  ============================== */
+
+  let stakeMatch = clean.match(/sázka\s*(\d+[,\.]\d+)/i);
+  if(stakeMatch){
+    stake.value = parseFloat(stakeMatch[1].replace(",","."));
+  }
+
+  /* ==============================
+     4️⃣ ODD (např. 2.12)
+  ============================== */
+
+  let oddMatch = clean.match(/\b\d\.\d{2}\b/g);
+  if(oddMatch){
+    odd.value = oddMatch.pop();
+  }
+
+  /* ==============================
+     5️⃣ AUTO SCROLL
+  ============================== */
+
+  document.getElementById("add").scrollIntoView({
+    behavior:"smooth"
+  });
+
+  /* ==============================
+     6️⃣ NOTE
+  ============================== */
+
+  note.value = "OCR: " + clean.slice(0,120);
+
+  alert("Sázka načtena ✅ Stačí kliknout Save Bet");
+}
+
 function initStatFilters(){
   statSport.innerHTML =
     '<option value="">All sports</option>' +
     Object.keys(DATA).map(s=>`<option>${s}</option>`).join("");
 
-  statType.innerHTML =
-    '<option value="">All bet types</option>' +
-    BET_TYPES.map(t=>`<option>${t}</option>`).join("");
+  const allTypes = Object.values(BET_TYPES).flat();
+
+statType.innerHTML =
+  '<option value="">All bet types</option>' +
+  allTypes.map(t=>`<option>${t}</option>`).join("");
+
 }
 
 statSport.onchange = ()=>{
@@ -1385,6 +1955,7 @@ const buildMap = key=>{
     <div class="stat-line bad">⚠️ Worst: ${worst.k} (${worst.roi.toFixed(1)}%)</div>
   ` : `<div class="stat-line">No data</div>`;
 }
+getOCR(); // preload OCR při načtení stránky
 
 </script>
 
@@ -1404,4 +1975,4 @@ const buildMap = key=>{
 </div>
 
 </body>
-</html> 
+</html>  

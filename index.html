@@ -48,7 +48,7 @@ section.active{display:block}
 }
 .dash-card{
   border:1px solid rgba(120,90,255,.35);
-  border-radius:14px;
+  border-radius‚14px;
   padding:12px;
 }
 .dash-card span{
@@ -499,6 +499,7 @@ button{
 <main>
 
 <!-- ADD -->
+
 <section id="add" class="active">
   <div class="dashboard">
     <div class="dash-card"><span>Bank</span><strong id="dashBank">0</strong></div>
@@ -598,24 +599,31 @@ button{
     <option value="">All bet types</option>
   </select>
 
-  <div class="dashboard">
-    <div class="dash-card">
-      <span>Bets</span>
-      <strong id="statCount">0</strong>
-    </div>
-    <div class="dash-card">
-      <span>Winrate</span>
-      <strong id="statWR">0%</strong>
-    </div>
-    <div class="dash-card">
-      <span>Profit</span>
-      <strong id="statProfit">0</strong>
-    </div>
-    <div class="dash-card">
-      <span>ROI</span>
-      <strong id="statROI">0%</strong>
-    </div>
+<div class="dashboard">
+
+  <div class="dash-card">
+    <span>Bankroll</span>
+    <strong id="statBank">0 Kč</strong>
   </div>
+
+  <div class="dash-card">
+    <span>Winrate</span>
+    <strong id="statWR">0%</strong>
+    <small id="statWL">0W / 0L</small>
+  </div>
+
+  <div class="dash-card">
+    <span>Profit</span>
+    <strong id="statProfit">0 Kč</strong>
+  </div>
+
+  <div class="dash-card">
+    <span>Total Bets</span>
+    <strong id="statCount">0</strong>
+  </div>
+
+</div>
+
 
   <h4>Best / Worst</h4>
   <div id="bestWorstBox"></div>
@@ -767,6 +775,7 @@ button{
 
 <script>
 let ocrWorker = null;
+let lastOCRBet = null;
 
 async function getOCR(){
   if(ocrWorker) return ocrWorker;
@@ -857,88 +866,88 @@ const DATA = {
 
 const BET_TYPES = {
   Football: [
-    "Domácí",
-    "Remíza",
-    "Hosté",
+    "Home",
+    "Draw",
+    "Away",
     "1X",
     "12",
     "X2",
-    "Více než",
-    "Méně než",
-    "Oba dají gól",
-    "Oba dají gól nebo více než 2,5",
-    "Výsledek poločasu",
-    "Góly v poločase",
-    "Výsledek a počet gólů",
-    "Výsledek a oba dají gól",
+    "Over",
+    "Under",
+    "BTTS",
+    "BTTS & Over 2.5",
+    "Half Time Result",
+    "Half Time Goals",
+    "Result & Goals",
+    "Result & BTTS",
     "Handicap",
-    "Poločas/Zápas",
-    "Přesné skóre",
-    "Další gól",
-    "Počet gólů týmu",
-    "Střelec gólu",
-    "Střelec 2+",
-    "Počet karet"
+    "Half Time / Full Time",
+    "Correct Score",
+    "Next Goal",
+    "Team Goals",
+    "Goalscorer",
+    "Goalscorer 2+",
+    "Cards"
   ],
 
   Hockey: [
-    "Domácí",
-    "Remíza",
-    "Hosté",
+    "Home",
+    "Draw",
+    "Away",
     "1X",
     "12",
     "X2",
-    "Více než",
-    "Méně než",
+    "Over",
+    "Under",
     "Handicap",
-    "Výsledek 1. třetiny",
-    "Výsledek 2. třetiny",
-    "Výsledek 3. třetiny",
-    "Počet gólů týmu",
-    "Výsledek a počet gólů",
-    "Oba dají gól",
-    "Další gól",
-    "Oba dají gól 2+",
-    "Oba dají gól 3+",
-    "Přesný počet gólů",
-    "Góly 1. třetina",
-    "Góly 2. třetina",
-    "Góly 3. třetina",
-    "Střelec gólu",
-    "Střelec 2+",
-    "Střelec 3+",
-    "Asistence",
-    "Asistence 2+",
-    "Asistence 3+",
-    "Bod",
-    "Bod 2+",
-    "Bod 3+"
+    "1st Period Result",
+    "2nd Period Result",
+    "3rd Period Result",
+    "Team Goals",
+    "Result & Goals",
+    "BTTS",
+    "Next Goal",
+    "BTTS 2+",
+    "BTTS 3+",
+    "Exact Goals",
+    "1st Period Goals",
+    "2nd Period Goals",
+    "3rd Period Goals",
+    "Goalscorer",
+    "Goalscorer 2+",
+    "Goalscorer 3+",
+    "Assist",
+    "Assist 2+",
+    "Assist 3+",
+    "Point",
+    "Point 2+",
+    "Point 3+"
   ],
 
   Basketball: [
-    "Domácí",
-    "Remíza",
-    "Hosté",
-    "Více než",
-    "Méně než",
-    "Výsledek a over/under",
+    "Home",
+    "Draw",
+    "Away",
+    "Over",
+    "Under",
+    "Result & Over/Under",
     "Handicap",
-    "Poločas/Zápas",
-    "Body týmu",
-    "Rozdíl bodů",
-    "Body hráče",
-    "Asistence hráče",
-    "Doskoky hráče"
+    "Half Time / Full Time",
+    "Team Points",
+    "Winning Margin",
+    "Player Points",
+    "Player Assists",
+    "Player Rebounds"
   ],
 
   Darts: [
-    "1",
-    "2",
-    "Více než",
-    "Méně než",
-    "Počet 180",
-    "9 šipek",
-    "Vlastní sázka"
+    "Player 1",
+    "Player 2",
+    "Over",
+    "Under",
+    "180s",
+    "9-Darter",
+    "Custom Bet"
   ]
 };
 
@@ -1065,62 +1074,71 @@ function addBet(){
   const bets = getBets();
 
   if(betMode.value === "parlay"){
-    const legs = Array.from(parlayLegsContainer.children).map(div=>{
-      const sport = div.querySelector(".parlaySport").value || "Football";
-      const league = div.querySelector(".parlayLeague").value || Object.keys(DATA[sport])[0];
-      const team = div.querySelector(".parlayTeam").value || DATA[sport][league][0];
-      const opponent = div.querySelector(".parlayOpponent").value || DATA[sport][league].find(t=>t!==team);
-      const typ = div.querySelector(".parlayType").value || BET_TYPES[0];
-      return {
-        sport,
-        league,
-        match: team+" vs "+opponent,
-        typ
-      };
-    });
 
-    bets.push({
-      id: Date.now(),
-      date: new Date().toISOString().slice(0,10),
-      mode: "parlay",
-      legs: legs,
-      tag: tag.value,
-      note: note.value,
-      stake: s,
-      odd: +parlayOdd.value,
-      result: "pending",
-      profit: 0
-    });
+const legs = Array.from(parlayLegsContainer.children).map(div=>{
+  const sport = div.querySelector(".parlaySport").value || "Football";
+  const league = div.querySelector(".parlayLeague").value || Object.keys(DATA[sport])[0];
+  const team = div.querySelector(".parlayTeam").value || DATA[sport][league][0];
+  const opponent = div.querySelector(".parlayOpponent").value || DATA[sport][league].find(t=>t!==team);
+  const typ = div.querySelector(".parlayType").value;
 
-  } else { // <-- tady musí být ELSE blok
-    bets.push({
-      id: Date.now(),
-      date: new Date().toISOString().slice(0,10),
-      sport: sport.value,
-      league: league.value,
-      match: team.value+" vs "+opponent.value,
-      typ: typ.value,
-      tag: tag.value,
-      note: note.value,
-      stake: s,
-      odd: o,
-      mode: "single",
-      result: "pending",
-      profit: 0
-    });
-  }
+  return {
+    sport,
+    league,
+    match: team + " vs " + opponent,
+    typ
+  };
+});
 
-  saveBets(bets);
-  update();
-  show("history");
+  bets.push({
+    id: Date.now(),
+    date: lastOCRBet?.date
+      ? lastOCRBet.date.split(".").reverse().join("-")
+      : new Date().toISOString().slice(0,10),
+
+    time: lastOCRBet?.time || "",
+
+    mode: "parlay",
+    legs,
+    tag: tag.value,
+    note: note.value,
+    stake: s,
+    odd: +parlayOdd.value,
+    result: "pending",
+    profit: 0
+  });
+
+} else {
+
+
+  bets.push({
+    id: Date.now(),
+    date: lastOCRBet?.date
+      ? lastOCRBet.date.split(".").reverse().join("-")
+      : new Date().toISOString().slice(0,10),
+
+    time: lastOCRBet?.time || "",
+
+    sport: sport.value,
+    league: league.value,
+    match: team.value+" vs "+opponent.value,
+    typ: typ.value,
+    tag: tag.value,
+    note: note.value,
+    stake: s,
+    odd: o,
+    mode: "single",
+    result: "pending",
+    profit: 0
+  });
+
 }
 
+saveBets(bets);
+update();
+show("history");
 
-
-
-
-
-
+}
 /* ========= HISTORY ========= */
 function render(){
   rows.innerHTML="";
@@ -1171,10 +1189,12 @@ function render(){
         <div class="history-card" data-id="${b.id}">
 
           <div class="history-header">
-            <span>${b.date}</span>
-            <span>${SPORT_ICONS[b.sport] || ""} ${b.sport}</span>
-
-          </div>
+  <span>
+    ${b.date}
+    ${b.time ? " " + b.time : ""}
+  </span>
+  <span>${SPORT_ICONS[b.sport] || ""} ${b.sport}</span>
+</div>
 
           <div class="history-match">${b.match}</div>
 
@@ -1390,9 +1410,9 @@ function resolveBet(id, res){
 function update(){
   const bets = getBets();
 
-  let profit = 0;
-  let stakeSum = 0;
-  let wins = 0;
+let profit = 0;
+let wins = 0;
+let losses = 0;
   let resolved = 0;
 
   bets.forEach(b=>{
@@ -1710,14 +1730,19 @@ function normalize(str){
     .trim();
 }
 async function importScreenshot(e){
+console.log("IMPORT SCREENSHOT START");
+//alert("Import spuštěn");
   const file = e.target.files[0];
   if(!file) return;
 
-  alert("Načítám sázku...");
+ // alert("Načítám sázku...");
 
   const cropped = await cropBottomArea(file);
+//alert("cropBottomArea OK");
   const worker = await getOCR();
+//alert("OCR Worker OK");
   const result = await worker.recognize(cropped);
+//alert("OCR HOTOVO");
 
 const text = result.data.blocks
   .map(b => b.text)
@@ -1726,60 +1751,92 @@ const text = result.data.blocks
 
   const clean = text.replace(/\n/g," ");
 
+const betData = {
+  stake: "",
+  date: "",
+  time: "",
+  winnings: "",
+  odds: "",
+  betType: "",
+  selection: "",
+  line: "",
+  homeTeam: "",
+  awayTeam: ""
+};
+const stakeMatchOCR =
+  clean.match(/single\s*(\d+[,\.]\d+)/i) ||
+  clean.match(/stake\s*(\d+[,\.]\d+)/i);
+
+if(stakeMatchOCR){
+  betData.stake = stakeMatchOCR[1];
+}
+
+const oddsMatchOCR = clean.match(/\b\d\.\d{2}\b/g);
+
+if(oddsMatchOCR){
+  betData.odds = oddsMatchOCR.pop();
+}
+const dateMatchOCR = clean.match(/\d{2}\.\d{2}\.\d{4}/);
+
+if(dateMatchOCR){
+  betData.date = dateMatchOCR[0];
+}
+const timeMatchOCR = clean.match(/\d{2}:\d{2}/);
+
+if(timeMatchOCR){
+  betData.time = timeMatchOCR[0];
+}
+const matchMatch = clean.match(
+  /([A-Za-z\s]+)\s-\s([A-Za-z\s]+?)(?:\s*\([A-Za-z]+\))?\s+Score/i
+);
+
+if(matchMatch){
+
+betData.homeTeam = matchMatch[1]
+  .replace("Handicap","")
+  .replace("Match Result","")
+  .trim();
+
+betData.awayTeam = matchMatch[2]
+  .replace(/\([^)]+\)/g, "")
+  .trim();
+
+  console.log("HOME FOUND:", betData.homeTeam);
+  console.log("AWAY FOUND:", betData.awayTeam);
+}
+
+console.log("TEXT:", clean);
+console.log("MATCH REGEX:", matchMatch);
+
 /* ==============================
    SMART TEAM SCORING FIXED
 ============================== */
 
-let scoredTeams = [];
+const homeInfo = findTeamAndLeague(betData.homeTeam);
+const awayInfo = findTeamAndLeague(betData.awayTeam);
 
-const cleanNorm = normalize(clean);
+console.log("HOME INFO:", homeInfo);
+console.log("AWAY INFO:", awayInfo);
 
-for(const [leagueName, teams] of Object.entries(DATA.Football)){
-  for(const t of teams){
+if(homeInfo){
 
-    const teamNorm = normalize(t);
-    const words = teamNorm.split(" ");
+  sport.value = "Football";
+  loadLeagues();
 
-    let score = 0;
+  if(homeInfo && awayInfo){
 
-    words.forEach(w=>{
-      if(cleanNorm.includes(w)) score++;
-    });
+  if(homeInfo.league === awayInfo.league){
 
-    if(score > 0){
-      scoredTeams.push({
-        team: t,
-        league: leagueName,
-        score: score
-      });
-    }
+    league.value = homeInfo.league;
+    loadTeams();
   }
 }
+  loadTeams();
 
-// seřadit podle skóre
-scoredTeams.sort((a,b)=>b.score - a.score);
+  team.value = homeInfo.team;
 
-// vezmeme jen týmy s nejvyšším score
-if(scoredTeams.length){
-
-  const bestScore = scoredTeams[0].score;
-  const bestTeams = scoredTeams.filter(t => t.score === bestScore);
-
-  if(bestTeams.length >= 2){
-
-    const home = bestTeams[0];
-    const away = bestTeams[1];
-
-    sport.value = "Football";
-    loadLeagues();
-
-league.value = home.league;
-loadTeams();
-
-team.value = home.team;
-loadTeams();
-
-opponent.value = away.team;
+  if(awayInfo){
+    opponent.value = awayInfo.team;
   }
 }
   /* /* ==============================
@@ -1788,17 +1845,22 @@ opponent.value = away.team;
 
 const lower = clean.toLowerCase();
 
-if(lower.includes("více než") && !lower.includes("méně než")){
-  typ.value = "Více než";
+if(lower.includes("handicap")){
+  betData.betType = "Handicap";
 }
-else if(lower.includes("méně než") && !lower.includes("více než")){
-  typ.value = "Méně než";
+else if(lower.includes("both teams to score")){
+  betData.betType = "BTTS";
 }
-else if(lower.includes("oba dají gól")){
-  typ.value = "Oba dají gól";
+else if(lower.includes("match result")){
+  betData.betType = "Home";
 }
-else if(lower.includes("handicap")){
-  typ.value = "Handicap";
+else if(lower.includes("over/under")){
+  betData.betType = "Over";
+}
+
+if(betData.betType){
+  typ.value = betData.betType;
+  console.log("BET TYPE SET:", typ.value);
 }
   /* ==============================
      3️⃣ STAKE (SOLO sázka 5,00 Kč)
@@ -1831,8 +1893,31 @@ else if(lower.includes("handicap")){
   ============================== */
 
   note.value = "OCR: " + clean.slice(0,120);
+odd.value = betData.odds;
 
+console.log("ODD SET:", odd.value);
+stake.disabled = false;
+
+stake.value = parseFloat(
+  betData.stake.replace(",", ".")
+);
+
+console.log("STAKE SET:", stake.value);
+if(betData.betType){
+  typ.value = betData.betType;
+  console.log("BET TYPE SET:", typ.value);
+}
+console.log("KONEC FUNKCE");
+console.log("DATE:", betData.date);
+console.log("TIME:", betData.time);
+console.log("HOME:", betData.homeTeam);
+console.log("AWAY:", betData.awayTeam);
+console.log("BETDATA:", betData);
+console.log("STAKE:", betData.stake);
+console.log("ODDS:", betData.odds);
   alert("Sázka načtena ✅ Stačí kliknout Save Bet");
+lastOCRBet = betData;
+console.log("OCR SAVED:", lastOCRBet);
 }
 
 function initStatFilters(){
@@ -1876,11 +1961,18 @@ function renderStats(){
     stakeSum += b.stake;
     profit += b.profit;
     if(b.result === "win") wins++;
+if(b.result === "lose") losses++;
   });
 
   const wr = bets.length ? (wins / bets.length * 100).toFixed(1) : 0;
   const roi = stakeSum ? (profit / stakeSum * 100).toFixed(1) : 0;
+const bankroll = bankBase + bonus + profit;
 
+document.getElementById("statBank").textContent =
+  bankroll.toFixed(2) + " Kč";
+
+document.getElementById("statWL").textContent =
+  wins + "W / " + losses + "L";
   document.getElementById("statCount").textContent = bets.length;
   document.getElementById("statWR").textContent = wr + "%";
   document.getElementById("statProfit").textContent = profit.toFixed(2);

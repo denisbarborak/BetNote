@@ -908,7 +908,71 @@ const DATA = {
   Basketball: {
     NBA: ["Lakers","Celtics","Bulls"]
   },
-Tennis: {
+Tennis: {ATP: [
+  "Jannik Sinner",
+  "Alexander Zverev",
+  "Novak Djokovic",
+  "Felix Auger-Aliassime",
+  "Ben Shelton",
+  "Daniil Medvedev",
+  "Taylor Fritz",
+  "Alex de Minaur",
+  "Lorenzo Musetti",
+  "Jack Draper",
+  "Andrey Rublev",
+  "Holger Rune",
+  "Karen Khachanov",
+  "Hubert Hurkacz",
+  "Casper Ruud",
+  "Tommy Paul",
+  "Frances Tiafoe",
+  "Jakub Mensik",
+  "Arthur Fils",
+  "Sebastian Korda",
+  "Ugo Humbert",
+  "Alejandro Davidovich Fokina",
+  "Alex Michelsen",
+  "Giovanni Mpetshi Perricard",
+  "Flavio Cobolli",
+  "Jiri Lehecka",
+  "Tallon Griekspoor",
+  "Joao Fonseca",
+  "Denis Shapovalov",
+  "Alexei Popyrin",
+  "Brandon Nakashima",
+  "Tomas Machac",
+  "Nuno Borges",
+  "Matteo Berrettini",
+  "Jordan Thompson",
+  "Gabriel Diallo",
+  "Luciano Darderi",
+  "Pedro Martinez",
+  "Mariano Navone",
+  "Roberto Bautista Agut",
+  "Sebastian Baez",
+  "Cameron Norrie",
+  "Miomir Kecmanovic",
+  "Alexandre Muller",
+  "Arthur Rinderknech",
+  "Corentin Moutet",
+  "Roberto Carballes Baena",
+  "Yoshihito Nishioka",
+  "Fabian Marozsan",
+  "Jaume Munar",
+  "Zizou Bergs",
+  "Quentin Halys",
+  "David Goffin",
+  "Learner Tien",
+  "Kei Nishikori",
+  "Laslo Djere",
+  "Marcos Giron",
+  "Roman Safiullin",
+  "Aleksandar Kovacevic",
+  "Daniel Altmaier",
+  "Jesper de Jong",
+  "Aleksandar Vukic",
+  "Hamad Medjedovic"
+],
   WTA: [
     "Aryna Sabalenka",
     "Elena Rybakina",
@@ -1065,15 +1129,51 @@ const BET_TYPES = {
     "180s",
     "9-Darter",
     "Custom Bet"
-  ]
+  ],
+Tennis: [
+  "Player 1",
+  "Player 2",
+  "Over",
+  "Under",
+  "Handicap",
+  "Correct Score",
+  "Set Betting",
+  "Match Winner",
+  "First Set Winner",
+  "Second Set Winner",
+  "Third Set Winner",
+  "Total Games",
+  "Games Handicap",
+  "Player Games",
+  "Tie Break",
+  "Tie Break in Match",
+  "Exact Sets",
+  "Player to Win a Set",
+  "Set Score",
+  "Match & Total Games",
+  "Match & Set Betting",
+  "First Game Winner",
+  "First Set Total Games",
+  "Second Set Total Games",
+  "Third Set Total Games",
+  "Race to 3 Games",
+  "Race to 5 Games",
+  "Race to 6 Games",
+  "Odd/Even Games",
+  "Player Aces",
+  "Player Double Faults",
+  "Player Breaks",
+  "Custom Bet"
+]
 };
 
 
 const SPORT_ICONS = {
-  Football: "⚽ Fotbal",
-  Hockey: "🏒 Hokej",
-  Basketball: "🏀 Basketbal",
-  Darts: "🎯 Šipky"
+  Football: "⚽ Footbal",
+  Hockey: "🏒 Hockey",
+  Basketball: "🏀 Basketball",
+  Darts: "🎯 Darts",
+  Tennis: "🎾 Tennis"
 };
 
 
@@ -1141,9 +1241,22 @@ function loadLeagues(){
   loadTeams();
 
 }
+league.onchange = loadTeams;
+team.onchange = loadOpponents; 
+
 function loadTeams(){
-  team.innerHTML=DATA[sport.value][league.value].map(t=>`<option>${t}</option>`).join("");
-  opponent.innerHTML=DATA[sport.value][league.value].filter(t=>t!==team.value).map(t=>`<option>${t}</option>`).join("");
+  team.innerHTML = DATA[sport.value][league.value]
+    .map(t => `<option>${t}</option>`)
+    .join("");
+
+  loadOpponents();
+}
+
+function loadOpponents(){
+  opponent.innerHTML = DATA[sport.value][league.value]
+    .filter(t => t !== team.value)
+    .map(t => `<option>${t}</option>`)
+    .join("");
 }
 function loadBetTypes(){
   betTypeSearch.value = "";
@@ -1168,8 +1281,8 @@ sport.onchange = () => {
   loadBetTypes();
 };
 
-league.onchange=loadTeams;
-team.onchange = loadTeams;
+league.onchange = loadTeams;
+team.onchange = loadOpponents;
 
 
 /* ========= STAKE ========= */
@@ -1561,7 +1674,7 @@ function draw(){
 
   const labels = bets.map(b => b.date);
 
-  const sports = ["Football","Hockey","Basketball","Darts"];
+  const sports = ["Football","Hockey","Basketball","Darts","Tennis"];
 
   let total = 0;
   const totalData = [];
@@ -1595,7 +1708,8 @@ function draw(){
         { label:"Football", data: bySport.Football },
         { label:"Hockey", data: bySport.Hockey },
         { label:"Basketball", data: bySport.Basketball },
-        { label:"Darts", data: bySport.Darts }
+        { label:"Darts", data: bySport.Darts },
+{ label:"Tennis", data: bySport.Tennis }
       ]
     },
     options:{
